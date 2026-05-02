@@ -181,7 +181,7 @@ def cargar_sesnsp():
         df.columns = df.columns.str.strip()
 
         # ── Normalizar nombres de columnas ──────────────────
-        # El CSV del SESNSP puede venir con diferentes nombres según la versión
+        # El CSV del SESNSP (Proyecto.py) viene en formato largo con columna 'fecha'
         rename_map = {}
         cols_lower = {c.lower(): c for c in df.columns}
 
@@ -203,50 +203,59 @@ def cargar_sesnsp():
                 rename_map[cols_lower[candidate]] = 'subtipo_delito'
                 break
 
-        # Columna bien jurídico
-        for candidate in ['bien jurídico afectado', 'bien juridico afectado', 'bien_juridico']:
+        # Columna incidencia
+        for candidate in ['incidencia_delictiva', 'incidencia', 'total', 'valor']:
             if candidate in cols_lower:
-                rename_map[cols_lower[candidate]] = 'bien_juridico'
+                rename_map[cols_lower[candidate]] = 'incidencia_delictiva'
+                break
+
+        # Columna fecha
+        for candidate in ['fecha', 'date', 'periodo']:
+            if candidate in cols_lower:
+                rename_map[cols_lower[candidate]] = 'fecha'
                 break
 
         df = df.rename(columns=rename_map)
 
-        # ── Detectar columnas de meses ──────────────────────
+        # ── Detectar si es formato largo (tiene columna fecha) o ancho (columnas de meses) ──
         meses_es = ['enero','febrero','marzo','abril','mayo','junio',
                     'julio','agosto','septiembre','octubre','noviembre','diciembre']
-        cols_meses = [c for c in df.columns if c.lower() in meses_es]
 
-        if not cols_meses:
-            return None, "No se encontraron columnas de meses en el CSV. Verifica el formato."
+        if 'fecha' in df.columns:
+            # FORMATO LARGO — una fila por fecha (tu CSV: 2015-04-01)
+            df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce')
+            df = df.dropna(subset=['fecha'])
+            df['anio']    = df['fecha'].dt.year
+            df['mes']     = df['fecha'].dt.month
+            df['mes_num'] = (df['anio'] - df['anio'].min()) * 12 + df['mes']
+            df['incidencia_delictiva'] = pd.to_numeric(
+                df['incidencia_delictiva'], errors='coerce').fillna(0)
+            df_long = df.copy()
 
-        # ── Convertir formato ancho → largo ─────────────────
-        id_vars = [c for c in df.columns if c not in cols_meses]
-        df_long = df.melt(id_vars=id_vars, value_vars=cols_meses,
-                          var_name='mes_nombre', value_name='incidencia_delictiva')
-        df_long['incidencia_delictiva'] = pd.to_numeric(
-            df_long['incidencia_delictiva'], errors='coerce').fillna(0)
-
-        # Mapeo mes → número
-        mes_num_map = {m: i+1 for i, m in enumerate(meses_es)}
-        df_long['mes'] = df_long['mes_nombre'].str.lower().map(mes_num_map)
-
-        # Columna año
-        anio_col = next((c for c in df_long.columns if 'año' in c.lower() or 'anio' in c.lower()), None)
-        if anio_col:
-            df_long = df_long.rename(columns={anio_col: 'anio'})
         else:
-            df_long['anio'] = 2024  # fallback
+            # FORMATO ANCHO — columnas por mes (Enero, Febrero, ...)
+            cols_meses = [c for c in df.columns if c.lower() in meses_es]
+            if not cols_meses:
+                return None, "No se reconoció el formato del CSV. Se esperaba columna 'fecha' o columnas de meses."
 
-        df_long['anio'] = pd.to_numeric(df_long['anio'], errors='coerce')
-        df_long = df_long.dropna(subset=['anio', 'mes'])
-        df_long['anio'] = df_long['anio'].astype(int)
-        df_long['mes']  = df_long['mes'].astype(int)
+            id_vars = [c for c in df.columns if c not in cols_meses]
+            df_long = df.melt(id_vars=id_vars, value_vars=cols_meses,
+                              var_name='mes_nombre', value_name='incidencia_delictiva')
+            df_long['incidencia_delictiva'] = pd.to_numeric(
+                df_long['incidencia_delictiva'], errors='coerce').fillna(0)
 
-        # Fecha y mes_num para modelos
-        df_long['fecha']   = pd.to_datetime(dict(year=df_long['anio'], month=df_long['mes'], day=1))
-        df_long['mes_num'] = (df_long['anio'] - df_long['anio'].min()) * 12 + df_long['mes']
+            mes_num_map = {m: i+1 for i, m in enumerate(meses_es)}
+            df_long['mes'] = df_long['mes_nombre'].str.lower().map(mes_num_map)
 
-        # Tasa por 100k
+            anio_col = next((c for c in df_long.columns if 'año' in c.lower() or 'anio' in c.lower()), None)
+            df_long['anio'] = pd.to_numeric(df_long[anio_col], errors='coerce') if anio_col else 2024
+            df_long = df_long.dropna(subset=['anio', 'mes'])
+            df_long['anio']    = df_long['anio'].astype(int)
+            df_long['mes']     = df_long['mes'].astype(int)
+            df_long['fecha']   = pd.to_datetime(dict(year=df_long['anio'], month=df_long['mes'], day=1))
+            df_long['mes_num'] = (df_long['anio'] - df_long['anio'].min()) * 12 + df_long['mes']
+
+        # Tasa por 100k (igual que Proyecto.py)
         def tasa(row):
             pob = POBLACION_ESTADOS.get(row.get('entidad', ''), 1_000_000)
             return (row['incidencia_delictiva'] / pob) * 100_000 if pob > 0 else 0
