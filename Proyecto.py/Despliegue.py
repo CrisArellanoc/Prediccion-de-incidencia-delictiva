@@ -10,7 +10,7 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import os
 
 # 1. Obtenemos la dirección de la carpeta actual
-folder_path = os.path.dirname(__CSV__)
+folder_path = os.path.dirname(__INM_estatal_dic25.csv.zip__)
 
 # 2. Cargamos los archivos directamente usando sus nombres exactos
 # Asegúrate de que los nombres coincidan con los que tienes en GitHub
