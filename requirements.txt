@@ -6,4 +6,3 @@ xgboost
 statsmodels
 plotly
 requests
-python-3.11
