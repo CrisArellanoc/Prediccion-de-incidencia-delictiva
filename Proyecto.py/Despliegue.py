@@ -43,7 +43,7 @@ modo_simple = st.toggle("Modo simple (explicaciones claras para público general
 # ─────────────────────────────────────────
 @st.cache_data
 def cargar():
-    fechas = pd.date_range("2018-01-01", periods=60, freq="M")
+    fechas = pd.date_range("2018-01-01", periods=60, freq="ME")
     data = []
     estados = ["Guanajuato", "Jalisco", "CDMX"]
 
