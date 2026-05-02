@@ -156,13 +156,30 @@ def cargar_sesnsp():
     """
     Intenta cargar desde ZIP (recomendado para GitHub) o CSV plano.
     Limpia columnas y calcula tasa_100k + variables temporales.
+    Ignora archivos __MACOSX que macOS agrega automáticamente al comprimir.
     """
     path = PATH_ZIP if os.path.exists(PATH_ZIP) else PATH_CSV if os.path.exists(PATH_CSV) else None
     if path is None:
         return None, "No se encontró el archivo de datos SESNSP en el repositorio."
 
     try:
-        df = pd.read_csv(path, low_memory=False)
+        # Si es ZIP, extraer ignorando archivos __MACOSX y .DS_Store
+        if path.endswith('.zip'):
+            import zipfile
+            with zipfile.ZipFile(path, 'r') as z:
+                # Filtrar solo archivos CSV reales (ignorar __MACOSX y archivos ocultos)
+                csv_files = [
+                    f for f in z.namelist()
+                    if f.endswith('.csv')
+                    and not f.startswith('__MACOSX')
+                    and not f.startswith('.')
+                ]
+                if not csv_files:
+                    return None, "No se encontró ningún CSV válido dentro del ZIP."
+                with z.open(csv_files[0]) as f:
+                    df = pd.read_csv(f, low_memory=False)
+        else:
+            df = pd.read_csv(path, low_memory=False)
         df.columns = df.columns.str.strip()
 
         # ── Normalizar nombres de columnas ──────────────────
