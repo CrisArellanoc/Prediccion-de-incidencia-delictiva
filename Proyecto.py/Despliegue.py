@@ -8,17 +8,21 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import os
+import streamlit as st
 
-# 1. Obtenemos la dirección de la carpeta actual
-folder_path = os.path.dirname(__INM_estatal_dic25.csv.zip__)
+folder_path = os.path.dirname(__file__)
 
-# 2. Cargamos los archivos directamente usando sus nombres exactos
-# Asegúrate de que los nombres coincidan con los que tienes en GitHub
-path_dataset = os.path.join(folder_path, 'dataset_maestro_percepcion_2024.csv')
-path_predicciones = os.path.join(folder_path, 'predicciones_2026.csv')
+nombre_archivo = 'INM_estatal_dic25.csv.zip'
 
-df = pd.read_csv(path_dataset)
-df_pred = pd.read_csv(path_predicciones)
+full_path = os.path.join(folder_path, nombre_archivo)
+
+# 4. Cargamos el dataframe
+try:
+    df = pd.read_csv(full_path)
+    st.success("¡Datos cargados exitosamente!")
+    st.write(df.head()) # Esto mostrará las primeras filas para confirmar
+except Exception as e:
+    st.error(f"No pude encontrar el archivo. Error: {e}")
 
 st.write("Datos cargados automáticamente desde el repositorio.")
 warnings.filterwarnings('ignore')
