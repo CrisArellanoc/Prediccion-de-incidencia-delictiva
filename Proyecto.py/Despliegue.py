@@ -7,8 +7,22 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score, mean_absolute_error
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import os
 
+# 1. Obtenemos la dirección de la carpeta actual
+folder_path = os.path.dirname(__CSV__)
+
+# 2. Cargamos los archivos directamente usando sus nombres exactos
+# Asegúrate de que los nombres coincidan con los que tienes en GitHub
+path_dataset = os.path.join(folder_path, 'dataset_maestro_percepcion_2024.csv')
+path_predicciones = os.path.join(folder_path, 'predicciones_2026.csv')
+
+df = pd.read_csv(path_dataset)
+df_pred = pd.read_csv(path_predicciones)
+
+st.write("Datos cargados automáticamente desde el repositorio.")
 warnings.filterwarnings('ignore')
+
 
 # ─────────────────────────────────────────────────────────
 # PAGE CONFIG
