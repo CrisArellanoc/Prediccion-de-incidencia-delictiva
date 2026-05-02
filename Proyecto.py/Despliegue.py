@@ -146,40 +146,38 @@ def plotly_layout(fig, title=""):
     return fig
 
 # ─────────────────────────────────────────────────────────
-# CARGA DE DATOS — lee el ZIP del repo directamente
+# CARGA DE DATOS — descarga desde Google Drive
 # ─────────────────────────────────────────────────────────
-PATH_ZIP = "INM_estatal_dic25.csv.zip"
-PATH_CSV = "INM_estatal_dic25.csv"
+GDRIVE_FILE_ID = "1vxqqM0-L1A5yIMs0vJbdIr1_dddEwMnn"
+GDRIVE_URL     = f"https://drive.google.com/uc?export=download&id={GDRIVE_FILE_ID}"
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def cargar_sesnsp():
     """
-    Intenta cargar desde ZIP (recomendado para GitHub) o CSV plano.
-    Limpia columnas y calcula tasa_100k + variables temporales.
-    Ignora archivos __MACOSX que macOS agrega automáticamente al comprimir.
+    Descarga el CSV desde Google Drive y lo procesa.
+    ttl=3600 -> se cachea 1 hora para no descargar en cada interaccion.
     """
-    path = PATH_ZIP if os.path.exists(PATH_ZIP) else PATH_CSV if os.path.exists(PATH_CSV) else None
-    if path is None:
-        return None, "No se encontró el archivo de datos SESNSP en el repositorio."
-
     try:
-        # Si es ZIP, extraer ignorando archivos __MACOSX y .DS_Store
-        if path.endswith('.zip'):
-            import zipfile
-            with zipfile.ZipFile(path, 'r') as z:
-                # Filtrar solo archivos CSV reales (ignorar __MACOSX y archivos ocultos)
-                csv_files = [
-                    f for f in z.namelist()
-                    if f.endswith('.csv')
-                    and not f.startswith('__MACOSX')
-                    and not f.startswith('.')
-                ]
-                if not csv_files:
-                    return None, "No se encontró ningún CSV válido dentro del ZIP."
-                with z.open(csv_files[0]) as f:
-                    df = pd.read_csv(f, low_memory=False)
-        else:
-            df = pd.read_csv(path, low_memory=False)
+        import requests, io, re
+
+        session  = requests.Session()
+        response = session.get(GDRIVE_URL, stream=True, timeout=60)
+
+        # Google Drive redirige archivos grandes a pagina de confirmacion
+        content_type = response.headers.get('Content-Type', '')
+        if 'text/html' in content_type:
+            token = None
+            for key, value in response.cookies.items():
+                if key.startswith('download_warning'):
+                    token = value
+                    break
+            if token is None:
+                match = re.search(r'confirm=([0-9A-Za-z_\-]+)', response.text)
+                token = match.group(1) if match else 't'
+            response = session.get(f"{GDRIVE_URL}&confirm={token}", stream=True, timeout=120)
+
+        response.raise_for_status()
+        df = pd.read_csv(io.BytesIO(response.content), low_memory=False)
         df.columns = df.columns.str.strip()
 
         # ── Normalizar nombres de columnas ──────────────────
