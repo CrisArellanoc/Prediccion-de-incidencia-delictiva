@@ -311,7 +311,7 @@ with st.sidebar:
         df_hi            = None
 
     st.markdown("---")
-    st.caption("by Cristóbal Arellano :) · Universidad Iberoamericanan León")
+    st.caption("by Cristóbal Arellano :)")
 
 # ─────────────────────────────────────────────────────────
 # HEADER
