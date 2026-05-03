@@ -139,7 +139,7 @@ with tab2:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df_e["fecha"], y=y, name="Real"))
     fig.add_trace(go.Scatter(
-        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="M")[1:],
+        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="ME")[1:],
         y=yf,
         name="Predicción",
         line=dict(dash="dash")
@@ -208,7 +208,7 @@ El modelo indica que la tendencia es **{"creciente" if forecast[-1] > y_hw[-1] e
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df_e["fecha"], y=y_hw, name="Real"))
     fig.add_trace(go.Scatter(
-        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="M")[1:],
+        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="ME")[1:],
         y=forecast,
         name="Pronóstico",
         line=dict(dash="dash")
