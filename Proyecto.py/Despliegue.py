@@ -38,6 +38,7 @@ def cargar_datos_reales():
         df = df.loc[:, ~df.columns.duplicated()]
         df.columns = df.columns.str.lower().str.strip()
         
+        # Diccionario para meses en español
         meses_esp = {
             'enero': 'January', 'febrero': 'February', 'marzo': 'March', 
             'abril': 'April', 'mayo': 'May', 'junio': 'June',
@@ -45,6 +46,7 @@ def cargar_datos_reales():
             'octubre': 'October', 'noviembre': 'November', 'diciembre': 'December'
         }
 
+        # Detección de columnas clave
         col_entidad = next((c for c in df.columns if any(k in c for k in ['entidad', 'estado', 'nom_ent'])), None)
         col_fecha = next((c for c in df.columns if any(k in c for k in ['fecha', 'date', 'mes', 'año'])), None)
         col_tasa = next((c for c in df.columns if any(k in c for k in ['tasa', 'valor', 'total', 'incidencia'])), None)
@@ -52,6 +54,7 @@ def cargar_datos_reales():
         if not all([col_entidad, col_fecha, col_tasa]):
             return None
 
+        # Limpiar fechas en español
         fecha_procesada = df[col_fecha].astype(str).str.lower()
         for esp, ing in meses_esp.items():
             fecha_procesada = fecha_procesada.str.replace(esp, ing)
@@ -85,15 +88,16 @@ if df is not None:
 
     tab1, tab2 = st.tabs(["🗺️ Mapa Coroplético", "📈 Análisis y Proyección"])
 
-    # --- TAB 1: MAPA (CORREGIDO) ---
+    # --- TAB 1: MAPA (SOLUCIÓN AL VALUEERROR) ---
     with tab1:
-        st.subheader("Distribución de Incidencia")
+        st.subheader("Distribución de Incidencia Actual")
         ultima_fecha = df["fecha"].max()
         df_mapa = df[df["fecha"] == ultima_fecha].copy()
         
         geojson_url = "https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json"
         
-        # Eliminamos 'scope' y usamos un enfoque más manual para evitar el ValueError de validación
+        # Eliminamos el parámetro 'scope' para evitar el conflicto de validación
+        # Usamos un mapa base más simple
         fig_mapa = px.choropleth(
             df_mapa,
             geojson=geojson_url,
@@ -104,14 +108,18 @@ if df is not None:
             labels={'tasa_100k': 'Tasa'}
         )
         
-        # Ajuste manual de la vista para evitar conflictos de validación de Plotly
+        # Forzamos a Plotly a centrarse solo en las coordenadas del GeoJSON
         fig_mapa.update_geos(
             visible=False, 
-            resolution=50,
             fitbounds="locations"
         )
         
-        fig_mapa.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=550)
+        fig_mapa.update_layout(
+            margin={"r":0,"t":0,"l":0,"b":0}, 
+            height=550,
+            coloraxis_colorbar=dict(title="Tasa")
+        )
+        
         st.plotly_chart(fig_mapa, use_container_width=True)
 
     # --- TAB 2: ANÁLISIS ---
@@ -125,18 +133,20 @@ if df is not None:
 
         try:
             serie = df_e["tasa_100k"].values
+            # El modelo Holt-Winters
             modelo = ExponentialSmoothing(serie, trend='add', seasonal='add', seasonal_periods=12).fit()
             pronostico = modelo.forecast(periodos_pred)
             fechas_pred = pd.date_range(df_e["fecha"].max(), periods=periodos_pred + 1, freq="ME")[1:]
             
             fig_evol = go.Figure()
             fig_evol.add_trace(go.Scatter(x=df_e["fecha"], y=serie, name="Histórico", line=dict(color='#333333')))
-            fig_evol.add_trace(go.Scatter(x=fechas_pred, y=pronostico, name="Proyección", line=dict(color='red', dash='dash')))
+            fig_evol.add_trace(go.Scatter(x=fechas_pred, y=pronostico, name="IA Proyección", line=dict(color='red', dash='dash')))
             fig_evol.update_layout(template="plotly_white", hovermode="x unified")
             st.plotly_chart(fig_evol, use_container_width=True)
         except:
+            st.warning("Datos insuficientes para proyección estacional.")
             st.line_chart(df_e.set_index("fecha")["tasa_100k"])
 
-    st.caption(f"Última fecha detectada en el archivo: {df['fecha'].max().strftime('%d/%m/%Y')}")
+    st.caption(f"Archivo actualizado al: {df['fecha'].max().strftime('%d/%m/%Y')}")
 else:
-    st.error("No se pudo cargar la base de datos.")
+    st.error("Error al conectar con la base de datos de Drive.")
