@@ -1,223 +1,145 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import r2_score, mean_absolute_error
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import requests
 import warnings
 
 warnings.filterwarnings('ignore')
 
 # ─────────────────────────────────────────
-# CONFIG
+# CONFIGURACIÓN
 # ─────────────────────────────────────────
-st.set_page_config(
-    page_title="Observatorio Delictivo · México",
-    page_icon="🔭",
-    layout="wide"
-)
+st.set_page_config(page_title="Observatorio Real · SESNSP 2025", page_icon="🇲🇽", layout="wide")
 
-# ─────────────────────────────────────────
-# INTRO (NUEVO)
-# ─────────────────────────────────────────
-st.title("🔭 Observatorio Delictivo en México")
-
+# Estilo visual
 st.markdown("""
-### 🧠 ¿Qué hace esta herramienta?
-
-Este observatorio permite:
-
-- Analizar la evolución delictiva en México  
-- Comparar estados  
-- Predecir tendencias futuras con inteligencia artificial  
-
-📌 Datos oficiales del SESNSP normalizados por cada 100,000 habitantes.
-""")
-
-modo_simple = st.toggle("Modo simple (explicaciones claras para público general)")
+    <style>
+    .stMetric { background-color: #ffffff; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────
-# DATA (simulada si falla)
+# CARGA DE DATOS DESDE TU DRIVE
 # ─────────────────────────────────────────
-@st.cache_data
-def cargar():
-    fechas = pd.date_range("2018-01-01", periods=60, freq="ME")
-    data = []
-    estados = ["Guanajuato", "Jalisco", "CDMX"]
+@st.cache_data(ttl=3600) # Se actualiza cada hora si cambias el archivo
+def cargar_datos_reales():
+    # ID extraído de tu enlace
+    FILE_ID = "1vxqqM0-L1A5yIMs0vJbdIr1_dddEwMnn"
+    url = f'https://drive.google.com/uc?export=download&id={FILE_ID}'
+    
+    try:
+        df = pd.read_csv(url)
+        
+        # --- LIMPIEZA AUTOMÁTICA ---
+        # Convertir nombres de columnas a minúsculas y quitar espacios para evitar errores
+        df.columns = [c.lower().strip() for c in df.columns]
+        
+        # Renombrar columnas comunes si vienen distinto (ej: 'estado' -> 'entidad')
+        rename_dict = {'estado': 'entidad', 'tasa': 'tasa_100k', 'valor': 'tasa_100k', 'date': 'fecha'}
+        df = df.rename(columns=rename_dict)
+        
+        # Asegurar formato fecha
+        df["fecha"] = pd.to_datetime(df["fecha"])
+        df = df.sort_values("fecha")
+        
+        # Crear mes_num para los modelos de predicción
+        df["mes_num"] = np.arange(len(df)) 
+        
+        return df
+    except Exception as e:
+        st.error(f"Error al leer tu CSV de Drive: {e}")
+        return None
 
-    for e in estados:
-        base = np.random.randint(50, 200)
-        for i, f in enumerate(fechas):
-            data.append({
-                "entidad": e,
-                "fecha": f,
-                "mes_num": i,
-                "mes": f.month,
-                "tasa_100k": base + i*0.5 + np.random.randn()*5
-            })
-    return pd.DataFrame(data)
-
-df = cargar()
-
-estado = st.selectbox("Selecciona un estado", df["entidad"].unique())
-periodos = st.slider("Meses a predecir", 1, 12, 6)
-
-df_e = df[df["entidad"] == estado]
-
-# ─────────────────────────────────────────
-# TABS RENOMBRADAS
-# ─────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Panorama general",
-    "🔮 Predicción básica",
-    "🌲 Predicción avanzada",
-    "📈 Tendencia temporal"
-])
-
-# ════════════════════════════════════════
-# TAB 1
-# ════════════════════════════════════════
-with tab1:
-
-    st.subheader(f"📍 Análisis de {estado}")
-
-    total = int(df_e["tasa_100k"].sum())
-    promedio = df_e["tasa_100k"].mean()
-
-    c1, c2 = st.columns(2)
-    c1.metric("Total acumulado", total)
-    c2.metric("Promedio mensual", round(promedio, 2))
-
-    # Insight automático
-    st.info(f"""
-🔍 **Insight clave:**
-
-El estado de **{estado}** presenta una tasa promedio de **{round(promedio,2)}**.
-
-👉 Esto indica un nivel de incidencia {"alto" if promedio > 120 else "moderado"}.
-""")
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df_e["fecha"],
-        y=df_e["tasa_100k"],
-        mode="lines",
-        name="Histórico"
-    ))
-    st.plotly_chart(fig, use_container_width=True)
-
-# ════════════════════════════════════════
-# TAB 2 — REGRESIÓN
-# ════════════════════════════════════════
-with tab2:
-
-    X = df_e[["mes_num", "mes"]].values
-    y = df_e["tasa_100k"].values
-
-    model = LinearRegression().fit(X, y)
-    pred = model.predict(X)
-
-    r2 = r2_score(y, pred)
-
-    st.metric("Precisión del modelo (R²)", round(r2, 3))
-
-    if modo_simple:
-        st.markdown(f"""
-📌 **Interpretación:**
-
-- Precisión: **{round(r2,2)}**
-- El modelo es **{"confiable" if r2 > 0.7 else "moderado"}**
-""")
-
-    # Forecast
-    future = np.arange(len(df_e), len(df_e)+periodos)
-    Xf = np.column_stack([future, (future % 12)+1])
-    yf = model.predict(Xf)
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_e["fecha"], y=y, name="Real"))
-    fig.add_trace(go.Scatter(
-        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="ME")[1:],
-        y=yf,
-        name="Predicción",
-        line=dict(dash="dash")
-    ))
-
-    st.plotly_chart(fig, use_container_width=True)
-
-# ════════════════════════════════════════
-# TAB 3 — RANDOM FOREST
-# ════════════════════════════════════════
-with tab3:
-
-    rf = RandomForestRegressor(n_estimators=100, max_depth=10)
-    rf.fit(X, y)
-    pred_rf = rf.predict(X)
-
-    r2_rf = r2_score(y, pred_rf)
-    mae = mean_absolute_error(y, pred_rf)
-
-    c1, c2 = st.columns(2)
-    c1.metric("Precisión (R²)", round(r2_rf, 3))
-    c2.metric("Error promedio (MAE)", round(mae, 2))
-
-    if modo_simple:
-        st.markdown("""
-🤖 **¿Qué es este modelo?**
-
-Random Forest detecta patrones complejos combinando múltiples decisiones.
-""")
-
-    # Importancia
-    imp = rf.feature_importances_
-
-    fig = go.Figure(go.Bar(
-        x=["Tendencia", "Estacionalidad"],
-        y=imp
-    ))
-    st.plotly_chart(fig)
-
-# ════════════════════════════════════════
-# TAB 4 — HOLT-WINTERS
-# ════════════════════════════════════════
-with tab4:
-
-    y_hw = y
-
-    model_hw = ExponentialSmoothing(
-        y_hw,
-        trend='add',
-        damped_trend=True
-    ).fit()
-
-    forecast = model_hw.forecast(periodos)
-
-    r2_hw = r2_score(y_hw, model_hw.fittedvalues)
-
-    st.metric("Precisión modelo temporal", round(r2_hw, 3))
-
-    if modo_simple:
-        st.markdown(f"""
-📈 **Interpretación:**
-
-El modelo indica que la tendencia es **{"creciente" if forecast[-1] > y_hw[-1] else "decreciente"}**.
-""")
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df_e["fecha"], y=y_hw, name="Real"))
-    fig.add_trace(go.Scatter(
-        x=pd.date_range(df_e["fecha"].max(), periods=periodos+1, freq="ME")[1:],
-        y=forecast,
-        name="Pronóstico",
-        line=dict(dash="dash")
-    ))
-
-    st.plotly_chart(fig, use_container_width=True)
+df = cargar_datos_reales()
 
 # ─────────────────────────────────────────
-# FOOTER
+# INTERFAZ PRINCIPAL
 # ─────────────────────────────────────────
-st.markdown("---")
-st.caption("Proyecto de análisis delictivo · IA aplicada · México")
+if df is not None:
+    st.title("🔭 Observatorio Delictivo México (Datos SESNSP)")
+    st.caption(f"Visualizando datos reales desde el 2018 hasta **{df['fecha'].max().strftime('%B %Y')}**")
+
+    # SIDEBAR
+    with st.sidebar:
+        st.image("https://www.gob.mx/cms/uploads/action_program/main_image/26135/post_sesnsp.png", use_container_width=True)
+        st.divider()
+        estado_sel = st.selectbox("📍 Selecciona Entidad Federativa", sorted(df["entidad"].unique()))
+        meses_proy = st.slider("🔮 Meses a futuro (IA)", 1, 12, 6)
+        st.info("Esta herramienta usa el modelo de Triple Suavizado Exponencial (Holt-Winters) para detectar estacionalidad.")
+
+    # FILTRADO
+    df_e = df[df["entidad"] == estado_sel]
+
+    # TABS
+    tab1, tab2 = st.tabs(["🗺️ Mapa de Calor Nacional", "📈 Análisis y Predicción por Estado"])
+
+    # --- TAB 1: MAPA ---
+    with tab1:
+        st.subheader(f"Incidencia Delictiva Nacional (Corte: {df['fecha'].max().date()})")
+        
+        # Tomamos el último mes disponible en tu base de datos
+        df_reciente = df[df["fecha"] == df["fecha"].max()]
+        
+        # GeoJSON de los estados de México
+        geojson_url = "https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json"
+        
+        fig_mapa = px.choropleth(
+            df_reciente,
+            geojson=geojson_url,
+            locations="entidad",
+            featureidkey="properties.name", # Esto mapea 'Guanajuato' con el mapa
+            color="tasa_100k",
+            color_continuous_scale="YlOrRd",
+            labels={'tasa_100k': 'Tasa'},
+            scope="mexico",
+            template="plotly_white"
+        )
+        fig_mapa.update_geos(fitbounds="locations", visible=False)
+        fig_mapa.update_layout(height=600, margin={"r":0,"t":0,"l":0,"b":0})
+        
+        st.plotly_chart(fig_mapa, use_container_width=True)
+
+    # --- TAB 2: ANÁLISIS ---
+    with tab2:
+        col1, col2, col3 = st.columns(3)
+        ultima_tasa = df_e["tasa_100k"].iloc[-1]
+        promedio = df_e["tasa_100k"].mean()
+        
+        col1.metric("Última Tasa (2025)", f"{ultima_tasa:.2f}")
+        col2.metric("Promedio Histórico", f"{promedio:.2f}")
+        col3.metric("Estado", estado_sel)
+
+        # Gráfico Histórico + Predicción
+        st.subheader("Evolución y Proyección")
+        
+        try:
+            # Entrenamiento del modelo con tus datos reales
+            y = df_e["tasa_100k"].values
+            # Holt-Winters: Maneja tendencia y estacionalidad de 12 meses
+            modelo = ExponentialSmoothing(y, trend='add', seasonal='add', seasonal_periods=12).fit()
+            prediccion = modelo.forecast(meses_proy)
+            
+            # Generar fechas futuras
+            ult_fecha = df_e["fecha"].max()
+            fechas_futuras = pd.date_range(ult_fecha, periods=meses_proy + 1, freq="ME")[1:]
+            
+            # Visualización
+            fig_final = go.Figure()
+            # Datos Reales
+            fig_final.add_trace(go.Scatter(x=df_e["fecha"], y=y, name="Datos Reales (Drive)", line=dict(color="#1f77b4", width=3)))
+            # Predicción
+            fig_final.add_trace(go.Scatter(x=fechas_futuras, y=prediccion, name="Predicción IA", line=dict(color="red", dash="dash")))
+            
+            fig_final.update_layout(hovermode="x unified", template="plotly_white")
+            st.plotly_chart(fig_final, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"No se pudo generar la predicción: {e}")
+            st.line_chart(df_e.set_index("fecha")["tasa_100k"])
+
+else:
+    st.error("No se pudo establecer conexión con el archivo en Google Drive.")
+    st.info("Revisa que el archivo tenga activada la opción: 'Cualquier persona con el enlace puede leer'.")
