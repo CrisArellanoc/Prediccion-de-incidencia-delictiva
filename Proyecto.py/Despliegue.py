@@ -5,6 +5,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
+import json
+import requests
 import warnings
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
@@ -546,6 +548,63 @@ def cargar_sesnsp():
         return None, f"Error al procesar el archivo: {e}"
 
 
+@st.cache_data(ttl=86400)
+def cargar_geojson():
+    """
+    Descarga el GeoJSON de estados de México desde GitHub (naturalearthdata vía public repo).
+    Se cachea 24h — pesa ~500KB, negligible una vez cacheado.
+    """
+    url = "https://raw.githubusercontent.com/angelnmara/geojson/master/mexicoHigh.json"
+    try:
+        r = requests.get(url, timeout=30)
+        r.raise_for_status()
+        geojson = r.json()
+        # Normalizar claves de propiedades para hacer match con df_raw['entidad']
+        NOMBRE_MAP = {
+            'Aguascalientes': 'Aguascalientes',
+            'Baja California': 'Baja California',
+            'Baja California Sur': 'Baja California Sur',
+            'Campeche': 'Campeche',
+            'Chiapas': 'Chiapas',
+            'Chihuahua': 'Chihuahua',
+            'Coahuila': 'Coahuila de Zaragoza',
+            'Colima': 'Colima',
+            'Distrito Federal': 'Ciudad de México',
+            'Ciudad de México': 'Ciudad de México',
+            'Durango': 'Durango',
+            'Guanajuato': 'Guanajuato',
+            'Guerrero': 'Guerrero',
+            'Hidalgo': 'Hidalgo',
+            'Jalisco': 'Jalisco',
+            'México': 'México',
+            'Mexico': 'México',
+            'Michoacán': 'Michoacán de Ocampo',
+            'Morelos': 'Morelos',
+            'Nayarit': 'Nayarit',
+            'Nuevo León': 'Nuevo León',
+            'Oaxaca': 'Oaxaca',
+            'Puebla': 'Puebla',
+            'Querétaro': 'Querétaro',
+            'Quintana Roo': 'Quintana Roo',
+            'San Luis Potosí': 'San Luis Potosí',
+            'Sinaloa': 'Sinaloa',
+            'Sonora': 'Sonora',
+            'Tabasco': 'Tabasco',
+            'Tamaulipas': 'Tamaulipas',
+            'Tlaxcala': 'Tlaxcala',
+            'Veracruz': 'Veracruz de Ignacio de la Llave',
+            'Yucatán': 'Yucatán',
+            'Zacatecas': 'Zacatecas',
+        }
+        for feature in geojson.get('features', []):
+            props = feature.get('properties', {})
+            nombre_raw = props.get('name', props.get('NAME', props.get('NOMBRE', '')))
+            props['entidad_norm'] = NOMBRE_MAP.get(nombre_raw, nombre_raw)
+        return geojson, None
+    except Exception as e:
+        return None, str(e)
+
+
 def horizonte_futuro(df, periodos):
     ultima = df['fecha'].max()
     max_mn = df['mes_num'].max()
@@ -587,6 +646,11 @@ with st.sidebar:
         )
 
         st.markdown("---")
+        # Filtro extra para el mapa
+        delitos_disponibles = ['Todos los delitos de alto impacto'] + DELITOS_ALTO_IMPACTO
+        delito_mapa = st.selectbox("Delito para mapa de calor", delitos_disponibles, index=0)
+
+        st.markdown("---")
         st.markdown(f"""
         <div class="status-row">
             <div class="status-dot"></div>
@@ -601,6 +665,7 @@ with st.sidebar:
         entidad_sel       = "Guanajuato"
         periodos_fc       = 6
         estados_contraste = []
+        delito_mapa       = 'Todos los delitos de alto impacto'
         df_hi             = None
         st.markdown("""
         <div class="status-row">
@@ -654,11 +719,12 @@ if df_raw is None:
 # ─────────────────────────────────────────────────────────
 # TABS
 # ─────────────────────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "01 · Diagnóstico Estatal",
     "02 · Regresión Lineal",
     "03 · Random Forest",
     "04 · Holt-Winters",
+    "05 · Mapa de Calor",
 ])
 
 # ════════════════════════════════════════════════════════
@@ -1180,6 +1246,340 @@ with tab4:
             ⚠ Error en modelo Holt-Winters: {e}
             </div>
             """, unsafe_allow_html=True)
+
+# ════════════════════════════════════════════════════════
+# TAB 5 — Mapa de Calor Estatal
+# ════════════════════════════════════════════════════════
+with tab5:
+
+    geojson_mx, geo_error = cargar_geojson()
+
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Mapa de calor · Incidencia delictiva por entidad federativa</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if geo_error:
+        st.markdown(f"""
+        <div class="orca-alert">
+        ⚠ No se pudo cargar el GeoJSON de México: {geo_error}<br/>
+        Verifica conectividad o carga el archivo manualmente.
+        </div>
+        """, unsafe_allow_html=True)
+    elif df_raw is None:
+        st.markdown("""
+        <div class="orca-alert">⚠ Sin datos SESNSP cargados.</div>
+        """, unsafe_allow_html=True)
+    else:
+        # ── Construir DataFrame para el mapa ──────────────────
+        if delito_mapa == 'Todos los delitos de alto impacto':
+            df_mapa_src = df_hi.copy()
+            titulo_delito = "Todos los delitos de alto impacto"
+        else:
+            df_mapa_src = df_hi[df_hi['tipo_delito'] == delito_mapa].copy() \
+                if 'tipo_delito' in df_hi.columns else df_hi.copy()
+            titulo_delito = delito_mapa
+
+        # Tasa promedio por estado (todos los años disponibles)
+        df_mapa = (df_mapa_src.groupby('entidad')['tasa_100k']
+                   .mean().reset_index()
+                   .rename(columns={'tasa_100k': 'Tasa_prom'}))
+        df_mapa['Tasa_prom'] = df_mapa['Tasa_prom'].round(2)
+
+        # Rank de criticidad
+        df_mapa = df_mapa.sort_values('Tasa_prom', ascending=False).reset_index(drop=True)
+        df_mapa['Ranking'] = df_mapa.index + 1
+        df_mapa['Nivel'] = pd.cut(
+            df_mapa['Tasa_prom'],
+            bins=[-1, df_mapa['Tasa_prom'].quantile(0.25),
+                      df_mapa['Tasa_prom'].quantile(0.50),
+                      df_mapa['Tasa_prom'].quantile(0.75),
+                      float('inf')],
+            labels=['BAJO', 'MODERADO', 'ALTO', 'CRÍTICO']
+        )
+
+        # KPIs del mapa
+        estado_critico   = df_mapa.iloc[0]
+        estado_seguro    = df_mapa.iloc[-1]
+        media_nacional   = df_mapa['Tasa_prom'].mean()
+        estados_criticos = len(df_mapa[df_mapa['Nivel'] == 'CRÍTICO'])
+
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Zona más crítica",    estado_critico['entidad'],
+                  f"{estado_critico['Tasa_prom']:.1f} /100k")
+        c2.metric("Zona más segura",     estado_seguro['entidad'],
+                  f"{estado_seguro['Tasa_prom']:.1f} /100k")
+        c3.metric("Media nacional",      f"{media_nacional:.1f} /100k")
+        c4.metric("Estados nivel crítico", str(estados_criticos))
+
+        st.markdown("""
+        <div class="orca-section">
+            <div class="orca-section-dot"></div>
+            <div class="orca-section-label">Mapa de calor · Tasa promedio /100k hab. · 2015–2025</div>
+            <div class="orca-section-line"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_map, col_rank = st.columns([3, 1])
+
+        with col_map:
+            fig_mapa = px.choropleth(
+                df_mapa,
+                geojson=geojson_mx,
+                locations='entidad',
+                featureidkey='properties.entidad_norm',
+                color='Tasa_prom',
+                hover_name='entidad',
+                hover_data={
+                    'Tasa_prom':  ':.2f',
+                    'Ranking':    True,
+                    'Nivel':      True,
+                    'entidad':    False,
+                },
+                color_continuous_scale=[
+                    [0.00, '#0d1117'],
+                    [0.20, '#0d2137'],
+                    [0.40, '#1f6feb'],
+                    [0.60, '#d97706'],
+                    [0.80, '#c0392b'],
+                    [1.00, '#7b1113'],
+                ],
+                labels={'Tasa_prom': 'Tasa /100k'},
+                title='',
+            )
+
+            fig_mapa.update_geos(
+                fitbounds='locations',
+                visible=False,
+                bgcolor='#0c0d0f',
+            )
+            fig_mapa.update_coloraxes(
+                colorbar=dict(
+                    title=dict(
+                        text='TASA /100K',
+                        font=dict(family='IBM Plex Mono, monospace', size=9,
+                                  color=COLORS['text2']),
+                    ),
+                    tickfont=dict(family='IBM Plex Mono, monospace', size=8,
+                                  color=COLORS['text']),
+                    bgcolor='#0e0f12',
+                    bordercolor=COLORS['grid'],
+                    borderwidth=1,
+                    thickness=10,
+                    len=0.7,
+                    x=1.01,
+                )
+            )
+            fig_mapa.update_traces(
+                marker_line_color='#1a1e28',
+                marker_line_width=0.8,
+                hovertemplate=(
+                    "<b style='font-family:IBM Plex Mono'>%{hovertext}</b><br>"
+                    "Tasa: %{z:.2f} /100k<br>"
+                    "<extra></extra>"
+                ),
+            )
+            plotly_layout(fig_mapa, f"Distribución territorial · {titulo_delito}")
+            fig_mapa.update_layout(
+                height=520,
+                margin=dict(l=0, r=60, t=44, b=0),
+                paper_bgcolor='#0c0d0f',
+                geo=dict(bgcolor='#0c0d0f'),
+            )
+            st.plotly_chart(fig_mapa, use_container_width=True)
+
+        with col_rank:
+            st.markdown("""
+            <div class="orca-section">
+                <div class="orca-section-dot"></div>
+                <div class="orca-section-label">Ranking nacional</div>
+                <div class="orca-section-line"></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Color por nivel
+            nivel_color = {
+                'CRÍTICO':  '#c0392b',
+                'ALTO':     '#d97706',
+                'MODERADO': '#1f6feb',
+                'BAJO':     '#2ea043',
+            }
+
+            for _, row in df_mapa.iterrows():
+                color = nivel_color.get(str(row['Nivel']), COLORS['text2'])
+                es_sel = row['entidad'] == entidad_sel
+                borde  = f"border-left: 2px solid {color};" if es_sel else f"border-left: 2px solid #1a1e28;"
+                fondo  = "background:#111318;" if es_sel else ""
+                st.markdown(f"""
+                <div style="
+                    display:flex; justify-content:space-between; align-items:center;
+                    padding:6px 10px; margin-bottom:2px;
+                    font-family:'IBM Plex Mono',monospace; font-size:0.62rem;
+                    border:1px solid #1a1e28; border-radius:1px;
+                    {borde} {fondo}
+                ">
+                    <span style="color:#2d3448; width:16px">{int(row['Ranking'])}</span>
+                    <span style="color:#5a6478; flex:1; margin:0 8px; overflow:hidden;
+                                 text-overflow:ellipsis; white-space:nowrap">
+                        {row['entidad'][:18]}
+                    </span>
+                    <span style="color:{color}; text-align:right">
+                        {row['Tasa_prom']:.1f}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # ── Gráfica de barras por nivel de criticidad ─────────
+        st.markdown("""
+        <div class="orca-section">
+            <div class="orca-section-dot"></div>
+            <div class="orca-section-label">Clasificación por nivel de riesgo operativo</div>
+            <div class="orca-section-line"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col_bar, col_info = st.columns([2, 1])
+
+        with col_bar:
+            color_bars = [nivel_color.get(str(n), COLORS['accent']) for n in df_mapa['Nivel']]
+            highlight  = [COLORS['accent2'] if e == entidad_sel else c
+                          for e, c in zip(df_mapa['entidad'], color_bars)]
+
+            fig_bar = go.Figure(go.Bar(
+                x=df_mapa['entidad'],
+                y=df_mapa['Tasa_prom'],
+                marker=dict(color=highlight, line=dict(width=0)),
+                text=df_mapa['Tasa_prom'].round(1),
+                textposition='outside',
+                textfont=dict(size=7, family='IBM Plex Mono, monospace',
+                              color=COLORS['text']),
+                hovertemplate=(
+                    "<b>%{x}</b><br>Tasa: %{y:.2f} /100k<extra></extra>"
+                ),
+            ))
+
+            # Línea media nacional
+            fig_bar.add_hline(
+                y=media_nacional,
+                line_dash='dot',
+                line_color=COLORS['text'],
+                line_width=1,
+                annotation_text=f"  MEDIA NAC. {media_nacional:.1f}",
+                annotation_font=dict(size=8, family='IBM Plex Mono, monospace',
+                                     color=COLORS['text']),
+                annotation_position='top left',
+            )
+
+            # Marca del estado seleccionado
+            idx_sel = df_mapa[df_mapa['entidad'] == entidad_sel].index
+            if len(idx_sel) > 0:
+                tasa_sel = df_mapa.loc[idx_sel[0], 'Tasa_prom']
+                fig_bar.add_annotation(
+                    x=entidad_sel,
+                    y=tasa_sel,
+                    text=f"◈ {entidad_sel}",
+                    showarrow=True,
+                    arrowhead=0,
+                    arrowcolor=COLORS['accent2'],
+                    font=dict(size=8, family='IBM Plex Mono, monospace',
+                              color=COLORS['accent2']),
+                    ax=0, ay=-32,
+                )
+
+            plotly_layout(fig_bar, f"Tasa /100k por entidad · {titulo_delito} · Ordenado por criticidad")
+            fig_bar.update_layout(
+                height=320,
+                xaxis=dict(tickangle=-45, tickfont=dict(size=7)),
+                yaxis_title='Tasa /100k hab.',
+                bargap=0.2,
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        with col_info:
+            st.markdown("""
+            <div class="orca-section">
+                <div class="orca-section-dot"></div>
+                <div class="orca-section-label">Leyenda de niveles</div>
+                <div class="orca-section-line"></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for nivel, color in nivel_color.items():
+                n_estados = len(df_mapa[df_mapa['Nivel'] == nivel])
+                rango_df  = df_mapa[df_mapa['Nivel'] == nivel]['Tasa_prom']
+                rango_str = f"{rango_df.min():.1f}–{rango_df.max():.1f}" if not rango_df.empty else "—"
+                st.markdown(f"""
+                <div style="
+                    padding:12px 14px; margin-bottom:8px;
+                    border:1px solid #1a1e28; border-left: 2px solid {color};
+                    border-radius:1px; background:#0e0f12;
+                    font-family:'IBM Plex Mono',monospace;
+                ">
+                    <div style="color:{color};font-size:0.62rem;letter-spacing:0.14em;font-weight:600">
+                        {nivel}
+                    </div>
+                    <div style="color:#3d4558;font-size:0.58rem;margin-top:4px">
+                        {n_estados} entidades · {rango_str} /100k
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            nivel_sel_row = df_mapa[df_mapa['entidad'] == entidad_sel]
+            if not nivel_sel_row.empty:
+                nivel_sel   = str(nivel_sel_row.iloc[0]['Nivel'])
+                rank_sel    = int(nivel_sel_row.iloc[0]['Ranking'])
+                tasa_sel_v  = nivel_sel_row.iloc[0]['Tasa_prom']
+                color_ns    = nivel_color.get(nivel_sel, COLORS['text2'])
+                st.markdown(f"""
+                <div class="orca-card" style="margin-top:12px">
+                <strong>{entidad_sel}</strong><br/>
+                Ranking: <span class="hl">#{rank_sel} / 32</span><br/>
+                Nivel: <span style="color:{color_ns};font-family:'IBM Plex Mono',monospace">
+                    {nivel_sel}
+                </span><br/>
+                Tasa prom: <span class="hl">{tasa_sel_v:.2f} /100k</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # ── Recomendaciones operativas ──────────────────────────
+        st.markdown("""
+        <div class="orca-section">
+            <div class="orca-section-dot"></div>
+            <div class="orca-section-label">Recomendaciones operativas · Uso como página de consulta</div>
+            <div class="orca-section-line"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown(f"""
+        <div class="orca-card">
+        <strong>Para maximizar el valor de consulta institucional:</strong><br/><br/>
+
+        <span class="hl">01 · Filtro por delito</span><br/>
+        El selector del sidebar permite aislar cualquier delito de alto impacto.
+        Para planificación de operativos, filtra por "Robo a transeúnte" o "Homicidio"
+        según el objetivo de la estrategia — la distribución territorial cambia significativamente
+        por tipo de delito.<br/><br/>
+
+        <span class="hl">02 · Lectura de zonas de riesgo</span><br/>
+        Los estados en nivel <span style="color:#c0392b">CRÍTICO</span> requieren
+        priorización de recursos. Los de nivel <span style="color:#d97706">ALTO</span>
+        son candidatos a intervención preventiva antes de escalar. La brecha entre
+        <strong>{estado_critico['entidad']}</strong> ({estado_critico['Tasa_prom']:.1f} /100k)
+        y <strong>{estado_seguro['entidad']}</strong> ({estado_seguro['Tasa_prom']:.1f} /100k)
+        indica desigualdad estructural, no aleatoria.<br/><br/>
+
+        <span class="hl">03 · Siguiente paso técnico recomendado</span><br/>
+        Con datos municipales del SESNSP (disponibles en el mismo portal, CSV separado),
+        el mapa puede bajarse a granularidad de municipio — pasando de 32 polígonos a ~2,400.
+        Eso habilita planificación táctica de patrullaje por cuadrante, no solo estratégica
+        por estado. El código de este tab escala sin modificaciones, solo requiere cambiar
+        el GeoJSON y el nivel de agregación.
+        </div>
+        """, unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────────────────
 # FOOTER
