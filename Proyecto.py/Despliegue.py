@@ -19,7 +19,7 @@ warnings.filterwarnings('ignore')
 # PAGE CONFIG
 # ─────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="ORCA · Sistema de Inteligencia Delictiva",
+    page_title="Análisis de incidencia delictiva",
     page_icon="◈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -621,8 +621,8 @@ def horizonte_futuro(df, periodos):
 # ─────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div class="sidebar-brand">◈ ORCA INTEL</div>
-    <div class="sidebar-ver">SISTEMA DE INTELIGENCIA DELICTIVA · v2.1</div>
+    <div class="sidebar-brand">◈ By Cristóbal Arellano Carranza</div>
+    <div class="sidebar-ver">ANÁLISIS DE INCIDENCIA DELICTIVA · v2.1</div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
@@ -681,7 +681,6 @@ with st.sidebar:
     METODOLOGÍA // CRISP-ML(Q)<br>
     MODELOS // LR · RF · HW<br>
     <br>
-    UIA LEÓN · IA · 194700-2
     </div>
     """, unsafe_allow_html=True)
 
