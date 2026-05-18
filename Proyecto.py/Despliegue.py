@@ -17,85 +17,358 @@ warnings.filterwarnings('ignore')
 # PAGE CONFIG
 # ─────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Observatorio Delictivo · México",
-    page_icon="🔭",
+    page_title="ORCA · Sistema de Inteligencia Delictiva",
+    page_icon="◈",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ─────────────────────────────────────────────────────────
-# CSS
+# CSS — PALANTIR AESTHETIC
 # ─────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-.stApp { background: #0a0e1a; color: #e2e8f0; }
-
-section[data-testid="stSidebar"] {
-    background: #0f1626 !important;
-    border-right: 1px solid #1e2d4a;
+*, html, body, [class*="css"] {
+    font-family: 'IBM Plex Sans', sans-serif;
+    box-sizing: border-box;
 }
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] p { color: #94a3b8 !important; font-size: 0.82rem; }
 
+/* ── App shell ── */
+.stApp {
+    background: #0c0d0f;
+    color: #c8cdd6;
+}
+
+/* ── Scanline overlay ── */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.012) 2px,
+        rgba(255,255,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* ── Sidebar ── */
+section[data-testid="stSidebar"] {
+    background: #0e0f12 !important;
+    border-right: 1px solid #1e2330 !important;
+    width: 280px !important;
+}
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p {
+    color: #5a6478 !important;
+    font-size: 0.72rem !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stSlider label,
+section[data-testid="stSidebar"] .stMultiSelect label {
+    color: #3d4558 !important;
+    font-size: 0.65rem !important;
+}
+
+/* Sidebar inputs */
+section[data-testid="stSidebar"] .stSelectbox > div > div,
+section[data-testid="stSidebar"] .stMultiSelect > div > div {
+    background: #111318 !important;
+    border: 1px solid #1e2330 !important;
+    border-radius: 2px !important;
+    color: #8a95a8 !important;
+    font-size: 0.78rem !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* ── Metrics ── */
 [data-testid="metric-container"] {
-    background: #111827; border: 1px solid #1e3a5f;
-    border-radius: 12px; padding: 14px 18px;
+    background: #0e0f12;
+    border: 1px solid #1a1e28;
+    border-top: 1px solid #242938;
+    border-radius: 2px;
+    padding: 16px 20px 14px;
+    position: relative;
+    overflow: hidden;
+}
+[data-testid="metric-container"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 2px; height: 100%;
+    background: #1f6feb;
 }
 [data-testid="metric-container"] label {
-    color: #64748b !important; font-size: 0.72rem;
-    text-transform: uppercase; letter-spacing: .08em;
-    font-family: 'Space Mono', monospace;
+    color: #3d4558 !important;
+    font-size: 0.62rem !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
 }
 [data-testid="metric-container"] [data-testid="stMetricValue"] {
-    color: #38bdf8 !important; font-family: 'Space Mono', monospace;
+    color: #e8ecf4 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 1.5rem !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.02em;
+}
+[data-testid="metric-container"] [data-testid="stMetricDelta"] {
+    color: #3d6b9a !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.68rem !important;
 }
 
-.obs-header {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #0f172a 100%);
-    border: 1px solid #1e3a5f; border-radius: 16px;
-    padding: 28px 36px; margin-bottom: 24px;
+/* ── Header ── */
+.orca-header {
+    background: #0e0f12;
+    border: 1px solid #1a1e28;
+    border-top: 2px solid #1f6feb;
+    border-radius: 2px;
+    padding: 24px 32px 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
 }
-.obs-header h1 { font-family: 'Space Mono', monospace; font-size: 1.5rem; color: #f1f5f9; margin: 0 0 6px; }
-.obs-header p  { color: #64748b; margin: 0; font-size: .88rem; }
-
-.badge {
-    display: inline-block; background: #0ea5e920; border: 1px solid #0ea5e950;
-    color: #38bdf8; font-family: 'Space Mono', monospace; font-size: .62rem;
-    padding: 3px 10px; border-radius: 20px; margin-right: 6px; letter-spacing: .1em;
+.orca-header::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 280px; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(31,111,235,0.03));
+    pointer-events: none;
+}
+.orca-wordmark {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: #1f6feb;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+.orca-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #e8ecf4;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+}
+.orca-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: #3d4558;
+    letter-spacing: 0.06em;
+    margin: 0 0 14px;
+}
+.orca-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.orca-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: #3d6b9a;
+    border: 1px solid #1a2a3d;
+    padding: 3px 10px;
+    border-radius: 1px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(31,111,235,0.04);
+}
+.orca-tag.alert {
+    color: #c0392b;
+    border-color: #3d1a1a;
+    background: rgba(192,57,43,0.04);
+}
+.orca-tag.ok {
+    color: #27ae60;
+    border-color: #1a3d2a;
+    background: rgba(39,174,96,0.04);
 }
 
-.section-title {
-    font-family: 'Space Mono', monospace; font-size: .7rem; letter-spacing: .18em;
-    text-transform: uppercase; color: #38bdf8; border-left: 3px solid #38bdf8;
-    padding-left: 10px; margin: 22px 0 14px;
+/* ── Section headers ── */
+.orca-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 24px 0 12px;
+}
+.orca-section-line {
+    flex: 1;
+    height: 1px;
+    background: #1a1e28;
+}
+.orca-section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: #2d3448;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.orca-section-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #1f6feb;
+    flex-shrink: 0;
 }
 
-.model-card {
-    background: #111827; border: 1px solid #1e3a5f; border-radius: 10px;
-    padding: 14px 18px; margin-bottom: 10px; font-size: .83rem; color: #94a3b8; line-height: 1.6;
+/* ── Cards ── */
+.orca-card {
+    background: #0e0f12;
+    border: 1px solid #1a1e28;
+    border-radius: 2px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    color: #5a6478;
+    line-height: 1.7;
 }
-.model-card strong { color: #e2e8f0; }
-
-.alert-box {
-    background: #1a0f0f; border: 1px solid #7f1d1d; border-radius: 8px;
-    padding: 14px 18px; font-size: .83rem; color: #fca5a5; line-height: 1.6;
+.orca-card strong, .orca-card b {
+    color: #8a95a8;
+    font-weight: 500;
+}
+.orca-card .hl {
+    color: #4a9eff;
+    font-family: 'IBM Plex Mono', monospace;
 }
 
+/* ── Alert ── */
+.orca-alert {
+    background: #0f0a0a;
+    border: 1px solid #2d1a1a;
+    border-left: 2px solid #c0392b;
+    border-radius: 2px;
+    padding: 16px 20px;
+    font-size: 0.78rem;
+    color: #7a4040;
+    line-height: 1.7;
+    font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
-    background: #0f1626; border-radius: 10px; padding: 4px; gap: 4px; border: 1px solid #1e2d4a;
+    background: transparent !important;
+    border-bottom: 1px solid #1a1e28;
+    border-radius: 0;
+    gap: 0;
+    padding: 0;
 }
-.stTabs [data-baseweb="tab"] { color: #64748b; border-radius: 8px; font-size: .82rem; padding: 8px 18px; }
-.stTabs [aria-selected="true"] { background: #1e3a5f !important; color: #38bdf8 !important; }
+.stTabs [data-baseweb="tab"] {
+    color: #3d4558 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 20px !important;
+    border-bottom: 2px solid transparent;
+    border-radius: 0 !important;
+    background: transparent !important;
+    margin-right: 0;
+}
+.stTabs [aria-selected="true"] {
+    color: #4a9eff !important;
+    border-bottom: 2px solid #1f6feb !important;
+    background: transparent !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    padding-top: 20px;
+}
 
-hr { border-color: #1e2d4a; }
+/* ── DataFrames ── */
+.stDataFrame {
+    border: 1px solid #1a1e28 !important;
+    border-radius: 2px !important;
+}
+.stDataFrame th {
+    background: #111318 !important;
+    color: #3d4558 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.62rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid #1a1e28 !important;
+}
+.stDataFrame td {
+    background: #0e0f12 !important;
+    color: #6a7585 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.72rem !important;
+    border-bottom: 1px solid #12151c !important;
+}
+
+/* ── Divider ── */
+hr {
+    border: none;
+    border-top: 1px solid #1a1e28;
+    margin: 20px 0;
+}
+
+/* ── Spinner ── */
+.stSpinner > div {
+    border-color: #1f6feb transparent transparent transparent !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0c0d0f; }
+::-webkit-scrollbar-thumb { background: #1e2330; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3040; }
+
+/* ── Sidebar header override ── */
+.sidebar-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    color: #1f6feb;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.sidebar-ver {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.55rem;
+    color: #2a3040;
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+}
+
+/* ── Status indicator ── */
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    color: #2a3040;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+.status-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #27ae60;
+    box-shadow: 0 0 6px #27ae6080;
+    flex-shrink: 0;
+}
+.status-dot.warn { background: #f39c12; box-shadow: 0 0 6px #f39c1280; }
 </style>
 """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────
-# CONSTANTES (de tus scripts originales)
+# CONSTANTES
 # ─────────────────────────────────────────────────────────
 POBLACION_ESTADOS = {
     'Aguascalientes': 1513000, 'Baja California': 3835000, 'Baja California Sur': 812000,
@@ -117,53 +390,75 @@ DELITOS_ALTO_IMPACTO = [
     'Robo a transeúnte en vía pública'
 ]
 
-# Plotly dark template base
-PLOTLY_TEMPLATE = "plotly_dark"
+# ── Palantir-style Plotly theme ──
 COLORS = {
-    'accent':  '#38bdf8',
-    'accent2': '#818cf8',
-    'green':   '#34d399',
-    'red':     '#f87171',
-    'pink':    '#f472b6',
-    'orange':  '#fb923c',
-    'bg':      '#111827',
-    'grid':    '#1e2d4a',
-    'text':    '#94a3b8',
+    'accent':  '#1f6feb',
+    'accent2': '#388bfd',
+    'green':   '#2ea043',
+    'red':     '#c0392b',
+    'amber':   '#d97706',
+    'purple':  '#8b5cf6',
+    'bg':      '#0e0f12',
+    'bg2':     '#111318',
+    'grid':    '#1a1e28',
+    'text':    '#3d4558',
+    'text2':   '#5a6478',
+    'label':   '#8a95a8',
 }
+
+PALETTE = [
+    '#1f6feb', '#388bfd', '#2ea043', '#c0392b',
+    '#d97706', '#8b5cf6', '#0ea5e9', '#f59e0b',
+]
 
 def plotly_layout(fig, title=""):
     fig.update_layout(
-        template=PLOTLY_TEMPLATE,
         paper_bgcolor=COLORS['bg'],
         plot_bgcolor=COLORS['bg'],
-        font=dict(family="DM Sans, sans-serif", color=COLORS['text'], size=12),
-        title=dict(text=title, font=dict(color="#e2e8f0", size=14), x=0.01),
-        margin=dict(l=20, r=20, t=50, b=20),
-        legend=dict(bgcolor="#0f1626", bordercolor=COLORS['grid'], borderwidth=1),
-        xaxis=dict(gridcolor=COLORS['grid'], zerolinecolor=COLORS['grid']),
-        yaxis=dict(gridcolor=COLORS['grid'], zerolinecolor=COLORS['grid']),
+        font=dict(family="IBM Plex Mono, monospace", color=COLORS['text2'], size=10),
+        title=dict(
+            text=f"<span style='font-size:10px;letter-spacing:0.1em;text-transform:uppercase'>{title}</span>",
+            font=dict(color=COLORS['label'], size=10, family="IBM Plex Mono, monospace"),
+            x=0.0, xanchor='left',
+        ),
+        margin=dict(l=16, r=16, t=44, b=16),
+        legend=dict(
+            bgcolor="#111318",
+            bordercolor=COLORS['grid'],
+            borderwidth=1,
+            font=dict(size=9, family="IBM Plex Mono, monospace", color=COLORS['text2']),
+        ),
+        xaxis=dict(
+            gridcolor=COLORS['grid'],
+            zerolinecolor=COLORS['grid'],
+            linecolor=COLORS['grid'],
+            tickfont=dict(size=9, family="IBM Plex Mono, monospace", color=COLORS['text']),
+            tickcolor=COLORS['grid'],
+        ),
+        yaxis=dict(
+            gridcolor=COLORS['grid'],
+            zerolinecolor=COLORS['grid'],
+            linecolor=COLORS['grid'],
+            tickfont=dict(size=9, family="IBM Plex Mono, monospace", color=COLORS['text']),
+            tickcolor=COLORS['grid'],
+        ),
     )
     return fig
 
 # ─────────────────────────────────────────────────────────
-# CARGA DE DATOS — descarga desde Google Drive
+# CARGA DE DATOS
 # ─────────────────────────────────────────────────────────
 GDRIVE_FILE_ID = "1vxqqM0-L1A5yIMs0vJbdIr1_dddEwMnn"
 GDRIVE_URL     = f"https://drive.google.com/uc?export=download&id={GDRIVE_FILE_ID}"
 
 @st.cache_data(ttl=3600)
 def cargar_sesnsp():
-    """
-    Descarga el CSV desde Google Drive y lo procesa.
-    ttl=3600 -> se cachea 1 hora para no descargar en cada interaccion.
-    """
     try:
         import requests, io, re
 
         session  = requests.Session()
         response = session.get(GDRIVE_URL, stream=True, timeout=60)
 
-        # Google Drive redirige archivos grandes a pagina de confirmacion
         content_type = response.headers.get('Content-Type', '')
         if 'text/html' in content_type:
             token = None
@@ -180,36 +475,25 @@ def cargar_sesnsp():
         df = pd.read_csv(io.BytesIO(response.content), low_memory=False)
         df.columns = df.columns.str.strip()
 
-        # ── Normalizar nombres de columnas ──────────────────
-        # El CSV del SESNSP (Proyecto.py) viene en formato largo con columna 'fecha'
         rename_map = {}
         cols_lower = {c.lower(): c for c in df.columns}
 
-        # Columna entidad
         for candidate in ['entidad', 'estado', 'entidad federativa', 'nom_ent']:
             if candidate in cols_lower:
                 rename_map[cols_lower[candidate]] = 'entidad'
                 break
-
-        # Columna tipo_delito
         for candidate in ['tipo de delito', 'tipo_delito', 'delito']:
             if candidate in cols_lower:
                 rename_map[cols_lower[candidate]] = 'tipo_delito'
                 break
-
-        # Columna subtipo_delito
         for candidate in ['subtipo de delito', 'subtipo_delito', 'subtipo']:
             if candidate in cols_lower:
                 rename_map[cols_lower[candidate]] = 'subtipo_delito'
                 break
-
-        # Columna incidencia
         for candidate in ['incidencia_delictiva', 'incidencia', 'total', 'valor']:
             if candidate in cols_lower:
                 rename_map[cols_lower[candidate]] = 'incidencia_delictiva'
                 break
-
-        # Columna fecha
         for candidate in ['fecha', 'date', 'periodo']:
             if candidate in cols_lower:
                 rename_map[cols_lower[candidate]] = 'fecha'
@@ -217,12 +501,10 @@ def cargar_sesnsp():
 
         df = df.rename(columns=rename_map)
 
-        # ── Detectar si es formato largo (tiene columna fecha) o ancho (columnas de meses) ──
         meses_es = ['enero','febrero','marzo','abril','mayo','junio',
                     'julio','agosto','septiembre','octubre','noviembre','diciembre']
 
         if 'fecha' in df.columns:
-            # FORMATO LARGO — una fila por fecha (tu CSV: 2015-04-01)
             df['fecha'] = pd.to_datetime(df['fecha'], errors='coerce')
             df = df.dropna(subset=['fecha'])
             df['anio']    = df['fecha'].dt.year
@@ -231,12 +513,10 @@ def cargar_sesnsp():
             df['incidencia_delictiva'] = pd.to_numeric(
                 df['incidencia_delictiva'], errors='coerce').fillna(0)
             df_long = df.copy()
-
         else:
-            # FORMATO ANCHO — columnas por mes (Enero, Febrero, ...)
             cols_meses = [c for c in df.columns if c.lower() in meses_es]
             if not cols_meses:
-                return None, "No se reconoció el formato del CSV. Se esperaba columna 'fecha' o columnas de meses."
+                return None, "No se reconoció el formato del CSV."
 
             id_vars = [c for c in df.columns if c not in cols_meses]
             df_long = df.melt(id_vars=id_vars, value_vars=cols_meses,
@@ -255,13 +535,11 @@ def cargar_sesnsp():
             df_long['fecha']   = pd.to_datetime(dict(year=df_long['anio'], month=df_long['mes'], day=1))
             df_long['mes_num'] = (df_long['anio'] - df_long['anio'].min()) * 12 + df_long['mes']
 
-        # Tasa por 100k (igual que Proyecto.py)
         def tasa(row):
             pob = POBLACION_ESTADOS.get(row.get('entidad', ''), 1_000_000)
             return (row['incidencia_delictiva'] / pob) * 100_000 if pob > 0 else 0
 
         df_long['tasa_100k'] = df_long.apply(tasa, axis=1)
-
         return df_long, None
 
     except Exception as e:
@@ -283,13 +561,16 @@ def horizonte_futuro(df, periodos):
 # SIDEBAR
 # ─────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### 🔭 Observatorio")
+    st.markdown("""
+    <div class="sidebar-brand">◈ ORCA INTEL</div>
+    <div class="sidebar-ver">SISTEMA DE INTELIGENCIA DELICTIVA · v2.1</div>
+    """, unsafe_allow_html=True)
+
     st.markdown("---")
 
     df_raw, error_carga = cargar_sesnsp()
 
     if df_raw is not None:
-        # Filtrar solo delitos de alto impacto para los modelos
         df_hi = df_raw[df_raw['tipo_delito'].isin(DELITOS_ALTO_IMPACTO)].copy() \
             if 'tipo_delito' in df_raw.columns else df_raw.copy()
 
@@ -300,31 +581,60 @@ with st.sidebar:
         periodos_fc = st.slider("Períodos a pronosticar (HW)", 1, 12, 6)
 
         estados_contraste = st.multiselect(
-            "Estados para gráficas de contraste",
+            "Estados para contraste",
             entidades,
             default=[entidades[i] for i in [0, idx_gto, -1] if i < len(entidades)][:3]
         )
+
+        st.markdown("---")
+        st.markdown(f"""
+        <div class="status-row">
+            <div class="status-dot"></div>
+            <span>SESNSP conectado</span>
+        </div>
+        <div class="status-row" style="margin-top:6px">
+            <div class="status-dot"></div>
+            <span>{len(df_raw):,} registros cargados</span>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        entidad_sel      = "Guanajuato"
-        periodos_fc      = 6
+        entidad_sel       = "Guanajuato"
+        periodos_fc       = 6
         estados_contraste = []
-        df_hi            = None
+        df_hi             = None
+        st.markdown("""
+        <div class="status-row">
+            <div class="status-dot warn"></div>
+            <span>Sin datos</span>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.caption("by Cristóbal Arellano :)")
+    st.markdown("""
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:#2a3040;letter-spacing:0.08em;line-height:1.8">
+    FUENTE // SESNSP · INEGI<br>
+    METODOLOGÍA // CRISP-ML(Q)<br>
+    MODELOS // LR · RF · HW<br>
+    <br>
+    UIA LEÓN · IA · 194700-2
+    </div>
+    """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────
 # HEADER
 # ─────────────────────────────────────────────────────────
 st.markdown("""
-<div class="obs-header">
-  <h1>🔭 Observatorio Delictivo · México</h1>
-  <p>Análisis CRISP-ML(Q) · Incidencia estatal 2015–2025 · SESNSP</p>
-  <br/>
-  <span class="badge">SESNSP</span>
-  <span class="badge">REG. LINEAL</span>
-  <span class="badge">RANDOM FOREST</span>
-  <span class="badge">HOLT-WINTERS</span>
+<div class="orca-header">
+    <div class="orca-wordmark">◈ ORCA · Observatorio de Riesgo Criminal Analítico</div>
+    <div class="orca-title">Sistema Nacional de Inteligencia Delictiva</div>
+    <div class="orca-sub">SESNSP · Incidencia estatal 2015–2025 · Análisis CRISP-ML(Q) · Clasificado: uso institucional</div>
+    <div class="orca-tags">
+        <span class="orca-tag">SESNSP</span>
+        <span class="orca-tag">REG. LINEAL</span>
+        <span class="orca-tag">RANDOM FOREST</span>
+        <span class="orca-tag">HOLT-WINTERS</span>
+        <span class="orca-tag ok">● SISTEMA ACTIVO</span>
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -333,11 +643,10 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────
 if df_raw is None:
     st.markdown(f"""
-    <div class="alert-box">
-    ❌ <strong>Archivo no encontrado</strong><br/><br/>
-    {error_carga}<br/><br/>
-    Asegúrate de subir <code>INM_estatal_dic25.csv.zip</code> (o el .csv) 
-    a la raíz de tu repositorio de GitHub junto con este <code>app.py</code>.
+    <div class="orca-alert">
+    ⚠ ERROR DE INGESTA — FUENTE NO DISPONIBLE<br><br>
+    {error_carga}<br><br>
+    Verificar: INM_estatal_dic25.csv.zip debe estar en la raíz del repositorio junto con app.py
     </div>
     """, unsafe_allow_html=True)
     st.stop()
@@ -346,24 +655,22 @@ if df_raw is None:
 # TABS
 # ─────────────────────────────────────────────────────────
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Diagnóstico Estatal",
-    "📐 Regresión Lineal",
-    "🌲 Random Forest",
-    "〰️ Holt-Winters",
+    "01 · Diagnóstico Estatal",
+    "02 · Regresión Lineal",
+    "03 · Random Forest",
+    "04 · Holt-Winters",
 ])
 
 # ════════════════════════════════════════════════════════
-# TAB 1 — Diagnóstico  (Proyecto.py §4 + §6)
+# TAB 1 — Diagnóstico
 # ════════════════════════════════════════════════════════
 with tab1:
     df_est = df_raw[df_raw['entidad'] == entidad_sel].copy() if 'entidad' in df_raw.columns else df_raw.copy()
 
-    # KPIs
     total_inc = int(df_est['incidencia_delictiva'].sum())
     anios_rng = f"{int(df_est['anio'].min())}–{int(df_est['anio'].max())}" if 'anio' in df_est.columns else "—"
     tasa_prom = round(df_est['tasa_100k'].mean(), 1)
 
-    # Disparidad nacional
     disp_nac = (df_raw.groupby('entidad')['tasa_100k'].mean()
                 .reset_index().rename(columns={'tasa_100k': 'Promedio_100k'})
                 .sort_values('Promedio_100k', ascending=False))
@@ -371,76 +678,133 @@ with tab1:
     min_e  = disp_nac.iloc[-1]
     brecha = round(max_e['Promedio_100k'] / max(min_e['Promedio_100k'], 0.01), 1)
 
+    # Divider
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Indicadores clave · """ + entidad_sel + """</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total incidencias",    f"{total_inc:,}",   anios_rng)
     c2.metric("Tasa prom /100k hab.", f"{tasa_prom}")
     c3.metric("Estado más crítico",   max_e['entidad'],   f"{max_e['Promedio_100k']:.1f} /100k")
     c4.metric("Brecha máx/mín",       f"{brecha}x")
 
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Disparidad nacional · tasa /100k hab.</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     col_a, col_b = st.columns([2, 1])
 
-    # Gráfica disparidad nacional horizontal
     with col_a:
-        st.markdown('<p class="section-title">Disparidad nacional · Tasa promedio /100k hab.</p>', unsafe_allow_html=True)
-        color_disp = [COLORS['red'] if e == max_e['entidad']
-                      else COLORS['green'] if e == min_e['entidad']
-                      else COLORS['accent']
-                      for e in disp_nac['entidad']]
+        color_disp = []
+        for e in disp_nac['entidad']:
+            if e == max_e['entidad']:
+                color_disp.append(COLORS['red'])
+            elif e == min_e['entidad']:
+                color_disp.append(COLORS['green'])
+            elif e == entidad_sel:
+                color_disp.append(COLORS['accent'])
+            else:
+                color_disp.append('#1e2a3a')
+
         fig_disp = go.Figure(go.Bar(
             x=disp_nac['Promedio_100k'],
             y=disp_nac['entidad'],
             orientation='h',
-            marker_color=color_disp,
+            marker=dict(
+                color=color_disp,
+                line=dict(width=0),
+            ),
             text=disp_nac['Promedio_100k'].round(1),
             textposition='outside',
-            textfont=dict(size=9, color=COLORS['text']),
+            textfont=dict(size=8, family="IBM Plex Mono, monospace", color=COLORS['text2']),
         ))
-        plotly_layout(fig_disp, "Incidencia delictiva · Tasa mensual promedio por 100k hab. (2015–2025)")
-        fig_disp.update_layout(height=750, yaxis=dict(autorange='reversed'))
+        plotly_layout(fig_disp, f"Incidencia delictiva · Tasa mensual promedio por 100 000 hab. · 2015–2025")
+        fig_disp.update_layout(
+            height=780,
+            yaxis=dict(autorange='reversed', tickfont=dict(size=9)),
+            bargap=0.35,
+        )
         st.plotly_chart(fig_disp, use_container_width=True)
 
-    # Top 10 delitos del estado + pie
     with col_b:
         if 'subtipo_delito' in df_est.columns:
-            st.markdown(f'<p class="section-title">Top 10 delitos · {entidad_sel}</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="orca-section">
+                <div class="orca-section-dot"></div>
+                <div class="orca-section-label">Composición delictiva</div>
+                <div class="orca-section-line"></div>
+            </div>
+            """, unsafe_allow_html=True)
+
             top10 = (df_est.groupby('subtipo_delito')['incidencia_delictiva']
                      .sum().nlargest(10).reset_index())
-            fig_pie = px.pie(top10, values='incidencia_delictiva', names='subtipo_delito',
-                             hole=0.45, color_discrete_sequence=px.colors.sequential.Plasma_r)
-            plotly_layout(fig_pie, f"Composición delictiva · {entidad_sel}")
-            fig_pie.update_traces(textposition='inside', textinfo='percent+label',
-                                  textfont_size=9)
-            fig_pie.update_layout(height=380, showlegend=False)
+
+            fig_pie = px.pie(
+                top10,
+                values='incidencia_delictiva',
+                names='subtipo_delito',
+                hole=0.6,
+                color_discrete_sequence=PALETTE,
+            )
+            plotly_layout(fig_pie, f"Top 10 delitos · {entidad_sel}")
+            fig_pie.update_traces(
+                textposition='inside',
+                textinfo='percent',
+                textfont=dict(size=8, family="IBM Plex Mono, monospace"),
+            )
+            fig_pie.update_layout(
+                height=360,
+                showlegend=True,
+                legend=dict(
+                    font=dict(size=8, family="IBM Plex Mono, monospace"),
+                    orientation='v',
+                ),
+            )
             st.plotly_chart(fig_pie, use_container_width=True)
 
-            st.markdown(f'<p class="section-title">Tabla top 10</p>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="orca-section">
+                <div class="orca-section-dot"></div>
+                <div class="orca-section-label">Tabla de frecuencias</div>
+                <div class="orca-section-line"></div>
+            </div>
+            """, unsafe_allow_html=True)
             st.dataframe(
                 top10.rename(columns={'subtipo_delito': 'Delito', 'incidencia_delictiva': 'Casos'})
                 .set_index('Delito'),
                 use_container_width=True
             )
 
-    # Análisis de contraste (≈ Proyecto.py §6)
     gua_row = disp_nac[disp_nac['entidad'] == 'Guanajuato']
     gua_val = gua_row['Promedio_100k'].values[0] if not gua_row.empty else 0
     ratio   = gua_val / max(min_e['Promedio_100k'], 0.01)
+
     st.markdown(f"""
-    <div class="model-card">
+    <div class="orca-card">
     <strong>Análisis de contraste regional</strong><br/>
-    Al analizar la disparidad regional mediante tasas normalizadas por cada 100,000 habitantes,
-    se observa una brecha crítica entre el máximo nacional (<strong>{max_e['entidad']}</strong>
-    con {max_e['Promedio_100k']:.1f}) y el mínimo (<strong>{min_e['entidad']}</strong>
-    con {min_e['Promedio_100k']:.1f}).<br/>
-    Guanajuato se posiciona con una tasa promedio de <strong>{gua_val:.1f}</strong>, lo que representa
-    una intensidad delictiva <strong>{ratio:.1f}x</strong> mayor que el estado más seguro.
+    Mediante tasas normalizadas por 100 000 habitantes se cuantifica una brecha crítica entre
+    <span class="hl">{max_e['entidad']}</span> (máximo nacional: {max_e['Promedio_100k']:.1f})
+    y <span class="hl">{min_e['entidad']}</span> (mínimo: {min_e['Promedio_100k']:.1f}).
+    Guanajuato registra tasa promedio de <span class="hl">{gua_val:.1f}</span>,
+    representando una intensidad delictiva <span class="hl">{ratio:.1f}×</span> mayor al estado más seguro.
     </div>
     """, unsafe_allow_html=True)
 
+
 # ════════════════════════════════════════════════════════
-# TAB 2 — Regresión Lineal  (Proyecto.py §3 + §5)
+# TAB 2 — Regresión Lineal
 # ════════════════════════════════════════════════════════
 with tab2:
-    with st.spinner("Entrenando Regresión Lineal..."):
+    with st.spinner("Entrenando modelos de regresión lineal..."):
         df_fut = horizonte_futuro(df_hi, periodos_fc)
         resultados_lr   = []
         predicciones_lr = []
@@ -456,10 +820,10 @@ with tab2:
             m = LinearRegression().fit(X, y)
 
             resultados_lr.append({
-                'Estado': estado,
-                'Tendencia (β₁)': round(m.coef_[0], 4),
-                'Tasa Prom /100k': round(y.mean(), 2),
-                'R²': round(r2_score(y, m.predict(X)), 4),
+                'Estado':           estado,
+                'Tendencia (β₁)':   round(m.coef_[0], 4),
+                'Tasa Prom /100k':  round(y.mean(), 2),
+                'R²':               round(r2_score(y, m.predict(X)), 4),
             })
             y_fut = np.maximum(m.predict(df_fut[['mes_num', 'mes']].values), 0)
             for j, val in enumerate(y_fut):
@@ -468,61 +832,80 @@ with tab2:
     df_res_lr  = pd.DataFrame(resultados_lr).sort_values('Tasa Prom /100k', ascending=False)
     df_pred_lr = pd.DataFrame(predicciones_lr)
 
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Métricas del modelo</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3 = st.columns(3)
-    c1.metric("R² promedio",       f"{df_res_lr['R²'].mean():.4f}")
-    c2.metric("Mejor R²",          f"{df_res_lr['R²'].max():.4f}",
+    c1.metric("R² promedio",        f"{df_res_lr['R²'].mean():.4f}")
+    c2.metric("Mejor R²",           f"{df_res_lr['R²'].max():.4f}",
               df_res_lr.loc[df_res_lr['R²'].idxmax(), 'Estado'])
     c3.metric("Estados modelados",  str(len(df_res_lr)))
 
-    st.markdown('<p class="section-title">Pronóstico de tasas · Análisis de contrastes</p>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Pronóstico comparativo de tasas</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    palette_contraste = [COLORS['red'], COLORS['orange'], COLORS['green'],
-                         COLORS['accent'], COLORS['accent2'], COLORS['pink']]
     estados_validos = [e for e in estados_contraste if e in df_hi['entidad'].unique()][:6]
 
     fig_lr = go.Figure()
     for i, estado in enumerate(estados_validos):
+        color = PALETTE[i % len(PALETTE)]
         data_e = (df_hi[df_hi['entidad'] == estado]
                   .groupby(['fecha', 'mes_num', 'mes'])['tasa_100k']
                   .mean().reset_index().sort_values('fecha'))
         df_p   = df_pred_lr[df_pred_lr['Estado'] == estado].sort_values('Fecha')
 
-        # Histórico (tenue)
         fig_lr.add_trace(go.Scatter(
             x=data_e['fecha'], y=data_e['tasa_100k'],
             name=estado, mode='lines',
-            line=dict(color=palette_contraste[i], width=1),
-            opacity=0.35, showlegend=False,
+            line=dict(color=color, width=1),
+            opacity=0.3, showlegend=False,
         ))
-        # Pronóstico (sólido)
         x_fc = pd.concat([pd.Series([data_e['fecha'].iloc[-1]]), df_p['Fecha']])
         y_fc = pd.concat([pd.Series([data_e['tasa_100k'].iloc[-1]]), df_p['Tasa_Predicha']])
         fig_lr.add_trace(go.Scatter(
-            x=x_fc, y=y_fc, name=f"Predicción {estado}",
-            mode='lines', line=dict(color=palette_contraste[i], width=2.5, dash='dash'),
+            x=x_fc, y=y_fc, name=estado,
+            mode='lines',
+            line=dict(color=color, width=2, dash='dot'),
         ))
 
-    # Banda del horizonte
     if not df_pred_lr.empty:
         fig_lr.add_vrect(
             x0=df_pred_lr['Fecha'].min(), x1=df_pred_lr['Fecha'].max(),
-            fillcolor="rgba(148,163,184,0.05)", line_width=0,
-            annotation_text="Horizonte predicción", annotation_position="top left",
-            annotation_font_color=COLORS['text'],
+            fillcolor="rgba(31,111,235,0.04)", line_width=0,
+            annotation_text=f"HORIZONTE · {periodos_fc}M",
+            annotation_position="top left",
+            annotation_font=dict(color=COLORS['text'], size=8, family="IBM Plex Mono, monospace"),
         )
 
-    plotly_layout(fig_lr, f"Regresión Lineal · Pronóstico {periodos_fc} meses · Contrastes estatales")
+    plotly_layout(fig_lr, f"Regresión lineal · Pronóstico {periodos_fc} meses · Contraste estatal")
     fig_lr.update_layout(height=420, xaxis_title="Fecha", yaxis_title="Tasa /100k hab.")
     st.plotly_chart(fig_lr, use_container_width=True)
 
-    st.markdown('<p class="section-title">R² y tendencia por estado</p>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">R² y tendencia por entidad</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
     st.dataframe(df_res_lr.set_index('Estado'), use_container_width=True)
 
+
 # ════════════════════════════════════════════════════════
-# TAB 3 — Random Forest  (XGBoost.py)
+# TAB 3 — Random Forest
 # ════════════════════════════════════════════════════════
 with tab3:
-    with st.spinner("Entrenando Random Forest (100 árboles, max_depth=10)..."):
+    with st.spinner("Entrenando Random Forest — 100 estimadores, profundidad máx. 10..."):
         resultados_rf   = []
         predicciones_rf = []
         modelos_cache   = {}
@@ -531,24 +914,23 @@ with tab3:
             data_e = (df_hi[df_hi['entidad'] == estado]
                       .groupby(['fecha', 'mes_num', 'mes'])['tasa_100k']
                       .mean().reset_index().sort_values('fecha'))
-            if len(data_e) < 24: continue  # igual que XGBoost.py
+            if len(data_e) < 24: continue
 
             X = data_e[['mes_num', 'mes']].values
             y = data_e['tasa_100k'].values
 
-            # Parámetros exactos de XGBoost.py
             modelo_rf = RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42)
             modelo_rf.fit(X, y)
             y_pred = modelo_rf.predict(X)
             imp    = modelo_rf.feature_importances_
 
             resultados_rf.append({
-                'Estado':                     estado,
-                'R²':                         round(r2_score(y, y_pred), 4),
-                'MAE':                        round(mean_absolute_error(y, y_pred), 2),
-                'Imp. Tendencia':             round(imp[0], 4),
-                'Imp. Estacionalidad':        round(imp[1], 4),
-                'Tasa Prom /100k':            round(y.mean(), 2),
+                'Estado':              estado,
+                'R²':                  round(r2_score(y, y_pred), 4),
+                'MAE':                 round(mean_absolute_error(y, y_pred), 2),
+                'Imp. Tendencia':      round(imp[0], 4),
+                'Imp. Estacionalidad': round(imp[1], 4),
+                'Tasa Prom /100k':     round(y.mean(), 2),
             })
             modelos_cache[estado] = {'data': data_e}
 
@@ -560,46 +942,69 @@ with tab3:
     df_res_rf  = pd.DataFrame(resultados_rf).sort_values('R²', ascending=False)
     df_pred_rf = pd.DataFrame(predicciones_rf)
 
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Métricas del modelo</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("R² promedio",      f"{df_res_rf['R²'].mean():.4f}")
-    c2.metric("Mejor R²",         f"{df_res_rf['R²'].max():.4f}", df_res_rf.iloc[0]['Estado'])
-    c3.metric("MAE promedio",      f"{df_res_rf['MAE'].mean():.2f}")
-    c4.metric("Estados modelados", str(len(df_res_rf)))
+    c1.metric("R² promedio",       f"{df_res_rf['R²'].mean():.4f}")
+    c2.metric("Mejor R²",          f"{df_res_rf['R²'].max():.4f}", df_res_rf.iloc[0]['Estado'])
+    c3.metric("MAE promedio",       f"{df_res_rf['MAE'].mean():.2f}")
+    c4.metric("Estados modelados",  str(len(df_res_rf)))
 
     col_a, col_b = st.columns(2)
 
-    # Gráfica importancia
     with col_a:
-        st.markdown('<p class="section-title">Importancia de variables (promedio nacional)</p>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="orca-section">
+            <div class="orca-section-dot"></div>
+            <div class="orca-section-label">Importancia de variables</div>
+            <div class="orca-section-line"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
         avg_imp = df_res_rf[['Imp. Tendencia', 'Imp. Estacionalidad']].mean()
         fig_imp = go.Figure(go.Bar(
             x=['Tendencia\n(mes_num)', 'Estacionalidad\n(mes)'],
             y=avg_imp.values,
-            marker_color=[COLORS['accent'] if v == avg_imp.max() else COLORS['accent2']
-                          for v in avg_imp.values],
+            marker=dict(
+                color=[COLORS['accent'] if v == avg_imp.max() else '#1e2a3a' for v in avg_imp.values],
+                line=dict(width=0),
+            ),
             text=[f"{v:.3f}" for v in avg_imp.values],
-            textposition='outside', textfont=dict(color=COLORS['text']),
-            width=0.45,
+            textposition='outside',
+            textfont=dict(size=9, family="IBM Plex Mono, monospace", color=COLORS['text2']),
+            width=0.4,
         ))
-        plotly_layout(fig_imp, "¿Qué influye más en la incidencia delictiva?")
-        fig_imp.update_layout(height=300, yaxis_title="Importancia relativa")
+        plotly_layout(fig_imp, "Importancia relativa de features · Promedio nacional")
+        fig_imp.update_layout(height=300, yaxis_title="Importancia")
         st.plotly_chart(fig_imp, use_container_width=True)
 
-        dominante = ("la tendencia temporal → cambio estructural"
+        dominante = ("tendencia temporal → cambio estructural"
                      if avg_imp['Imp. Tendencia'] > avg_imp['Imp. Estacionalidad']
-                     else "la estacionalidad mensual → patrones de calendario")
+                     else "estacionalidad mensual → patrones de calendario")
         st.markdown(f"""
-        <div class="model-card">
-        <strong>Interpretación para tu hipótesis</strong><br/>
-        El modelo detecta que domina <strong>{dominante}</strong>.
-        Si la tendencia domina → existe un cambio estructural (posible inhibición o escalada).<br/>
-        Si la estacionalidad domina → el delito sigue patrones de calendario (meses específicos).
+        <div class="orca-card">
+        <strong>Interpretación</strong><br/>
+        El modelo detecta dominancia de <span class="hl">{dominante}</span>.
+        Si la tendencia domina → existe un cambio estructural (inhibición o escalada).
+        Si la estacionalidad domina → el delito sigue patrones de calendario.
         </div>
         """, unsafe_allow_html=True)
 
-    # Gráfica estado detallado
     with col_b:
-        st.markdown(f'<p class="section-title">Análisis predictivo · {entidad_sel}</p>', unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="orca-section">
+            <div class="orca-section-dot"></div>
+            <div class="orca-section-label">Análisis predictivo · {entidad_sel}</div>
+            <div class="orca-section-line"></div>
+        </div>
+        """, unsafe_allow_html=True)
+
         if entidad_sel in modelos_cache:
             data_h = modelos_cache[entidad_sel]['data']
             df_p_e = df_pred_rf[df_pred_rf['Estado'] == entidad_sel].sort_values('Fecha')
@@ -607,48 +1012,69 @@ with tab3:
             fig_rf = go.Figure()
             fig_rf.add_trace(go.Scatter(
                 x=data_h['fecha'], y=data_h['tasa_100k'],
-                name='Histórico (SESNSP)', mode='lines',
-                line=dict(color=COLORS['accent2'], width=1.5), opacity=0.8,
+                name='Histórico SESNSP', mode='lines',
+                line=dict(color='#1e2a3a', width=1.5),
             ))
             fig_rf.add_trace(go.Scatter(
                 x=df_p_e['Fecha'], y=df_p_e['Tasa_Predicha'],
                 name=f'Predicción RF · {periodos_fc}m',
                 mode='lines+markers',
-                line=dict(color=COLORS['red'], width=2.5, dash='dash'),
-                marker=dict(size=5, symbol='square'),
+                line=dict(color=COLORS['red'], width=2, dash='dot'),
+                marker=dict(size=4, symbol='square', color=COLORS['red']),
             ))
             plotly_layout(fig_rf, f"Random Forest · {entidad_sel}")
             fig_rf.update_layout(height=320, xaxis_title="Fecha", yaxis_title="Tasa /100k hab.")
             st.plotly_chart(fig_rf, use_container_width=True)
         else:
-            st.info(f"No hay suficientes datos para {entidad_sel} (mínimo 24 registros).")
+            st.markdown(f"""
+            <div class="orca-card" style="color:#3d4558">
+            Sin datos suficientes para {entidad_sel} (mínimo 24 registros requeridos).
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown('<p class="section-title">Reporte ejecutivo por estado</p>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Reporte ejecutivo por entidad</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
     st.dataframe(df_res_rf.set_index('Estado'), use_container_width=True)
 
     mejor      = df_res_rf.iloc[0]
     mayor_tend = df_res_rf.sort_values('Imp. Tendencia', ascending=False).iloc[0]
     st.markdown(f"""
-    <div class="model-card">
-    <strong>Resumen ejecutivo</strong><br/>
-    Precisión promedio (R²): <strong>{df_res_rf['R²'].mean():.4f}</strong> ·
-    Estado con mejor ajuste: <strong>{mejor['Estado']}</strong> (R²={mejor['R²']:.2f}) ·
-    Mayor tendencia al alza: <strong>{mayor_tend['Estado']}</strong>
+    <div class="orca-card">
+    <strong>Resumen ejecutivo</strong> ·
+    Precisión promedio (R²): <span class="hl">{df_res_rf['R²'].mean():.4f}</span> ·
+    Mejor ajuste: <span class="hl">{mejor['Estado']}</span> (R²={mejor['R²']:.2f}) ·
+    Mayor tendencia al alza: <span class="hl">{mayor_tend['Estado']}</span>
     </div>
     """, unsafe_allow_html=True)
 
+
 # ════════════════════════════════════════════════════════
-# TAB 4 — Holt-Winters  (Series_tiempo_HW.py)
+# TAB 4 — Holt-Winters
 # ════════════════════════════════════════════════════════
 with tab4:
-    st.markdown(f'<p class="section-title">Holt-Winters · {entidad_sel} (trend=add, damped_trend=True)</p>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="orca-section">
+        <div class="orca-section-dot"></div>
+        <div class="orca-section-label">Holt-Winters · {entidad_sel} · trend=add · damped_trend=True</div>
+        <div class="orca-section-line"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
     data_hw = (df_hi[df_hi['entidad'] == entidad_sel]
                .groupby(['fecha', 'mes_num', 'mes'])['tasa_100k']
                .mean().reset_index().sort_values('fecha'))
 
     if len(data_hw) < 12:
-        st.warning(f"Pocos datos para {entidad_sel}.")
+        st.markdown(f"""
+        <div class="orca-alert">
+        ⚠ Datos insuficientes para {entidad_sel} — se requieren mínimo 12 registros temporales.
+        </div>
+        """, unsafe_allow_html=True)
     else:
         try:
             y_hw   = data_hw['tasa_100k'].values.astype(float)
@@ -658,8 +1084,8 @@ with tab4:
                 y_hw, trend='add', seasonal=None, damped_trend=True
             ).fit(optimized=True)
 
-            fitted   = model_hw.fittedvalues
-            forecast = model_hw.forecast(periodos_fc)
+            fitted    = model_hw.fittedvalues
+            forecast  = model_hw.forecast(periodos_fc)
             ultima_f  = pd.Timestamp(fechas[-1])
             fechas_fc = [ultima_f + pd.DateOffset(months=i+1) for i in range(periodos_fc)]
 
@@ -667,44 +1093,50 @@ with tab4:
             mae_hw = round(mean_absolute_error(y_hw, fitted), 2)
 
             c1, c2, c3 = st.columns(3)
-            c1.metric("R² Holt-Winters",   f"{r2_hw}")
-            c2.metric("MAE ajuste",         f"{mae_hw:.2f}")
-            c3.metric("Períodos pronost.",  str(periodos_fc))
+            c1.metric("R² Holt-Winters",  f"{r2_hw}")
+            c2.metric("MAE ajuste",        f"{mae_hw:.2f}")
+            c3.metric("Períodos forecast", str(periodos_fc))
 
-            # Gráfica HW
             fig_hw = go.Figure()
             fig_hw.add_trace(go.Scatter(
                 x=data_hw['fecha'], y=y_hw,
                 name='Real (SESNSP)', mode='lines',
-                line=dict(color=COLORS['accent2'], width=1.8), opacity=0.85,
+                line=dict(color='#1e2a3a', width=1.5),
             ))
             fig_hw.add_trace(go.Scatter(
                 x=data_hw['fecha'], y=fitted,
                 name='Ajuste HW', mode='lines',
-                line=dict(color=COLORS['accent'], width=1.5, dash='dot'),
+                line=dict(color=COLORS['accent2'], width=1.5, dash='dot'),
+                opacity=0.8,
             ))
             fig_hw.add_trace(go.Scatter(
                 x=fechas_fc, y=forecast,
                 name=f'Pronóstico {periodos_fc}m',
                 mode='lines+markers',
-                line=dict(color=COLORS['pink'], width=2.5, dash='dash'),
-                marker=dict(size=6, symbol='circle'),
+                line=dict(color=COLORS['amber'], width=2.5, dash='dot'),
+                marker=dict(size=5, symbol='circle', color=COLORS['amber']),
             ))
-            # Banda de pronóstico
             fig_hw.add_vrect(
                 x0=fechas_fc[0], x1=fechas_fc[-1],
-                fillcolor="rgba(244,114,182,0.06)", line_width=0,
-                annotation_text="Horizonte pronóstico",
-                annotation_font_color=COLORS['text'],
+                fillcolor="rgba(217,119,6,0.04)", line_width=0,
+                annotation_text=f"HORIZONTE PRONÓSTICO · {periodos_fc}M",
+                annotation_font=dict(color=COLORS['text'], size=8, family="IBM Plex Mono, monospace"),
+                annotation_position="top left",
             )
-            plotly_layout(fig_hw, f"Holt-Winters · {entidad_sel}")
-            fig_hw.update_layout(height=400, xaxis_title="Fecha", yaxis_title="Tasa /100k hab.")
+            plotly_layout(fig_hw, f"Holt-Winters · {entidad_sel} · Suavizamiento exponencial con tendencia amortiguada")
+            fig_hw.update_layout(height=420, xaxis_title="Fecha", yaxis_title="Tasa /100k hab.")
             st.plotly_chart(fig_hw, use_container_width=True)
 
-            # Tabla de valores pronosticados
             col_t, col_c = st.columns([1, 1])
+
             with col_t:
-                st.markdown("**Valores pronosticados:**")
+                st.markdown("""
+                <div class="orca-section">
+                    <div class="orca-section-dot"></div>
+                    <div class="orca-section-label">Valores pronosticados</div>
+                    <div class="orca-section-line"></div>
+                </div>
+                """, unsafe_allow_html=True)
                 df_fc_show = pd.DataFrame({
                     'Fecha': [f.strftime('%Y-%m') for f in fechas_fc],
                     'Tasa predicha /100k': forecast.round(2),
@@ -712,41 +1144,54 @@ with tab4:
                 })
                 st.dataframe(df_fc_show.set_index('Fecha'), use_container_width=True)
 
-            # Comparativa modelos del estado seleccionado
             with col_c:
-                st.markdown(f"**Comparativa de modelos · {entidad_sel}:**")
-                comp_rows = []
+                st.markdown(f"""
+                <div class="orca-section">
+                    <div class="orca-section-dot"></div>
+                    <div class="orca-section-label">Comparativa de modelos · {entidad_sel}</div>
+                    <div class="orca-section-line"></div>
+                </div>
+                """, unsafe_allow_html=True)
 
+                comp_rows = []
                 data_lr = df_res_lr[df_res_lr['Estado'] == entidad_sel]
                 if not data_lr.empty:
                     comp_rows.append({'Modelo': 'Regresión Lineal',
                                       'R²': data_lr.iloc[0]['R²'], 'MAE': '—',
-                                      'Pronóstico temporal': '✅', 'Tipo': 'Supervisado'})
+                                      'Pronóstico': '✓', 'Tipo': 'Supervisado'})
 
                 data_rf = df_res_rf[df_res_rf['Estado'] == entidad_sel]
                 if not data_rf.empty:
                     comp_rows.append({'Modelo': 'Random Forest',
                                       'R²': data_rf.iloc[0]['R²'],
                                       'MAE': data_rf.iloc[0]['MAE'],
-                                      'Pronóstico temporal': '✅', 'Tipo': 'Supervisado'})
+                                      'Pronóstico': '✓', 'Tipo': 'Supervisado'})
 
                 comp_rows.append({'Modelo': 'Holt-Winters',
                                   'R²': r2_hw, 'MAE': mae_hw,
-                                  'Pronóstico temporal': '✅', 'Tipo': 'Serie de tiempo'})
+                                  'Pronóstico': '✓', 'Tipo': 'Serie temporal'})
 
                 if comp_rows:
                     st.dataframe(pd.DataFrame(comp_rows).set_index('Modelo'), use_container_width=True)
 
         except Exception as e:
-            st.error(f"Error Holt-Winters: {e}")
+            st.markdown(f"""
+            <div class="orca-alert">
+            ⚠ Error en modelo Holt-Winters: {e}
+            </div>
+            """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────
 # FOOTER
 # ─────────────────────────────────────────────────────────
 st.markdown("---")
-st.markdown(
-    '<p style="text-align:center;color:#334155;font-size:.72rem;font-family:Space Mono,monospace;">'
-    'Observatorio Delictivo · CRISP-ML(Q) · Ingeniería en Inteligencia Artificial · Iberoamericana León'
-    '</p>',
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:#1e2330;letter-spacing:0.12em">
+        ◈ ORCA · SISTEMA DE INTELIGENCIA DELICTIVA · CLASIFICADO: USO INSTITUCIONAL
+    </span>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;color:#1e2330;letter-spacing:0.08em">
+        UIA LEÓN · INGENIERÍA EN IA · CRISP-ML(Q)
+    </span>
+</div>
+""", unsafe_allow_html=True)
